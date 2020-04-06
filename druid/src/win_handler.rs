@@ -296,14 +296,10 @@ impl<T: Data> Inner<T> {
                     w.event(&mut self.command_queue, event, &mut self.data, &self.env);
                 }
             }
-            // in this case we send it to every window that might contain
-            // this widget, breaking if the event is handled.
             Target::Widget(id) => {
-                for w in self.windows.iter_mut().filter(|w| w.may_contain_widget(id)) {
-                    let event = Event::TargetedCommand(id.into(), cmd.clone());
-                    if w.event(&mut self.command_queue, event, &mut self.data, &self.env) {
-                        break;
-                    }
+                if let Some(w) = self.windows.iter_mut().find(|w| w.contains_widget(id)) {
+                    let event = Event::TargetedCommand(id.into(), cmd);
+                    w.event(&mut self.command_queue, event, &mut self.data, &self.env);
                 }
             }
             Target::Global => {

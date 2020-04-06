@@ -18,7 +18,7 @@ use std::collections::VecDeque;
 
 use log;
 
-use crate::bloom::Bloom;
+use crate::fastset::FastSet;
 use crate::kurbo::{Affine, Insets, Rect, Shape, Size};
 use crate::piet::RenderContext;
 use crate::{
@@ -97,7 +97,7 @@ pub(crate) struct BaseState {
 
     pub(crate) focus_chain: Vec<WidgetId>,
     pub(crate) request_focus: Option<FocusChange>,
-    pub(crate) children: Bloom<WidgetId>,
+    pub(crate) children: FastSet<WidgetId>,
     pub(crate) children_changed: bool,
 }
 
@@ -558,7 +558,7 @@ impl<T: Data, W: Widget<T>> WidgetPod<T, W> {
         match event {
             LifeCycle::WidgetAdded | LifeCycle::RouteWidgetAdded => {
                 self.state.children_changed = false;
-                ctx.base_state.children = ctx.base_state.children.union(self.state.children);
+                ctx.base_state.children = ctx.base_state.children.union(&self.state.children);
                 ctx.base_state.focus_chain.extend(&self.state.focus_chain);
                 ctx.register_child(self.id());
             }
@@ -624,7 +624,7 @@ impl BaseState {
             request_timer: false,
             request_focus: None,
             focus_chain: Vec::new(),
-            children: Bloom::new(),
+            children: FastSet::new(),
             children_changed: false,
         }
     }
@@ -694,6 +694,6 @@ mod tests {
         assert!(ctx.base_state.children.contains(&ID_1));
         assert!(ctx.base_state.children.contains(&ID_2));
         assert!(ctx.base_state.children.contains(&ID_3));
-        assert_eq!(ctx.base_state.children.entry_count(), 7);
+        assert_eq!(ctx.base_state.children.len(), 7);
     }
 }

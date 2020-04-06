@@ -72,7 +72,7 @@ impl<T: Data> Window<T> {
         &self.root.state().focus_chain
     }
 
-    pub(crate) fn may_contain_widget(&self, widget_id: WidgetId) -> bool {
+    pub(crate) fn contains_widget(&self, widget_id: WidgetId) -> bool {
         self.root.state().children.contains(&widget_id)
     }
 

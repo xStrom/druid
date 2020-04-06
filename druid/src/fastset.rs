@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! A simple Bloom filter, used to track child widgets.
+//! A fast set, used to track child widgets.
 
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 
 use fnv::FnvHasher;
 
@@ -28,64 +28,57 @@ const NUM_BITS: u64 = 64;
 const OFFSET_ONE: u64 = 0xcbf2_9ce4_8422_2325;
 const OFFSET_TWO: u64 = 0xe10_3ad8_2dad_8028;
 
-/// A very simple Bloom filter optimized for small values.
-#[derive(Clone, Copy)]
-pub(crate) struct Bloom<T: ?Sized> {
+/// A fast set optimized for small values.
+///
+/// It consists of a simple Bloom filter guarding a full set.
+#[derive(Clone)]
+pub(crate) struct FastSet<T> {
     bits: u64,
-    data: PhantomData<T>,
-    entry_count: usize,
+    set: HashSet<T>,
 }
 
-impl<T: ?Sized + Hash> Bloom<T> {
-    /// Create a new filter.
+impl<T: ?Sized + Eq + Copy + Hash> FastSet<T> {
+    /// Create a new set.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Returns the number of items that have been added to the filter.
-    ///
-    /// Does not count unique entries; this is just the number of times
-    /// `add()` was called since the filter was created or last `clear()`ed.
-    // it feels wrong to call this 'len'?
+    /// Returns the number of entries in the set.
     #[cfg(test)]
-    pub fn entry_count(&self) -> usize {
-        self.entry_count
+    pub fn len(&self) -> usize {
+        self.set.len()
     }
 
-    /// Return the raw bits of this filter.
-    #[allow(dead_code)]
-    pub fn to_raw(&self) -> u64 {
-        self.bits
-    }
-
-    /// Remove all entries from the filter.
+    /// Remove all entries from the set.
     pub fn clear(&mut self) {
         self.bits = 0;
-        self.entry_count = 0;
+        self.set.clear();
     }
 
-    /// Add an item to the filter.
-    pub fn add(&mut self, item: &T) {
-        let mask = self.make_bit_mask(item);
+    /// Add an item to the set.
+    pub fn add(&mut self, item: T) {
+        let mask = self.make_bit_mask(&item);
         self.bits |= mask;
-        self.entry_count += 1;
+        self.set.insert(item);
     }
 
-    /// Return whether an item exists in the filter.
-    ///
-    /// This can return false positives, but never false negatives.
+    /// Returns `true` if the set contains the value.
     pub fn contains(&self, item: &T) -> bool {
+        self.bloom_contains(item) && self.set.contains(item)
+    }
+
+    /// Create a new `FastSet` with the entries from both sets.
+    pub fn union(&self, other: &FastSet<T>) -> FastSet<T> {
+        FastSet {
+            bits: self.bits | other.bits,
+            set: self.set.union(&other.set).copied().collect(),
+        }
+    }
+
+    #[inline]
+    fn bloom_contains(&self, item: &T) -> bool {
         let mask = self.make_bit_mask(item);
         self.bits & mask == mask
-    }
-
-    /// Create a new `Bloom` with the items from both filters.
-    pub fn union(&self, other: Bloom<T>) -> Bloom<T> {
-        Bloom {
-            bits: self.bits | other.bits,
-            data: PhantomData,
-            entry_count: self.entry_count + other.entry_count,
-        }
     }
 
     #[inline]
@@ -109,18 +102,17 @@ impl<T: ?Sized + Hash> Bloom<T> {
     }
 }
 
-impl<T: ?Sized> std::fmt::Debug for Bloom<T> {
+impl<T: ?Sized + Eq + Copy + Hash> std::fmt::Debug for FastSet<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Bloom: {:064b}: ({})", self.bits, self.entry_count)
+        write!(f, "FastSet: {:064b}: ({})", self.bits, self.set.len())
     }
 }
 
-impl<T: ?Sized> Default for Bloom<T> {
+impl<T: ?Sized + Eq + Copy + Hash> Default for FastSet<T> {
     fn default() -> Self {
-        Bloom {
+        FastSet {
             bits: 0,
-            data: PhantomData,
-            entry_count: 0,
+            set: HashSet::new(),
         }
     }
 }
@@ -131,34 +123,34 @@ mod tests {
 
     #[test]
     fn very_good_test() {
-        let mut bloom = Bloom::default();
+        let mut set = FastSet::default();
         for i in 0..100 {
-            bloom.add(&i);
-            assert!(bloom.contains(&i));
+            set.add(i);
+            assert!(set.bloom_contains(&i));
         }
-        bloom.clear();
+        set.clear();
         for i in 0..100 {
-            assert!(!bloom.contains(&i));
+            assert!(!set.bloom_contains(&i));
         }
     }
 
     #[test]
     fn union() {
-        let mut bloom1 = Bloom::default();
-        bloom1.add(&0);
-        bloom1.add(&1);
-        assert!(!bloom1.contains(&2));
-        assert!(!bloom1.contains(&3));
-        let mut bloom2 = Bloom::default();
-        bloom2.add(&2);
-        bloom2.add(&3);
-        assert!(!bloom2.contains(&0));
-        assert!(!bloom2.contains(&1));
+        let mut set1 = FastSet::default();
+        set1.add(0);
+        set1.add(1);
+        assert!(!set1.bloom_contains(&2));
+        assert!(!set1.bloom_contains(&3));
+        let mut set2 = FastSet::default();
+        set2.add(2);
+        set2.add(3);
+        assert!(!set2.bloom_contains(&0));
+        assert!(!set2.bloom_contains(&1));
 
-        let bloom3 = bloom1.union(bloom2);
-        assert!(bloom3.contains(&0));
-        assert!(bloom3.contains(&1));
-        assert!(bloom3.contains(&2));
-        assert!(bloom3.contains(&3));
+        let set3 = set1.union(&set2);
+        assert!(set3.bloom_contains(&0));
+        assert!(set3.bloom_contains(&1));
+        assert!(set3.bloom_contains(&2));
+        assert!(set3.bloom_contains(&3));
     }
 }
