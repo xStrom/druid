@@ -48,6 +48,8 @@ pub enum MouseButton {
     X1,
     /// Second X button.
     X2,
+    /// Unknown button.
+    Unknown,
 }
 
 impl MouseButton {

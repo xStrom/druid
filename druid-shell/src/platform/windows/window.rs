@@ -640,7 +640,7 @@ impl WndProc for MyWndProc {
                         w if (w & 1 << 7) > 0 => MouseButton::X2,
                         //FIXME: I guess we probably do want `MouseButton::None`?
                         //this feels bad, but also this gets discarded in druid anyway.
-                        _ => MouseButton::Left,
+                        _ => MouseButton::Unknown,
                     };
                     let event = MouseEvent {
                         pos,
