@@ -255,6 +255,10 @@ lazy_static! {
             mouse_down_right as extern "C" fn(&mut Object, Sel, id),
         );
         decl.add_method(
+            sel!(otherMouseDown:),
+            mouse_down_other as extern "C" fn(&mut Object, Sel, id),
+        );
+        decl.add_method(
             sel!(mouseUp:),
             mouse_up_left as extern "C" fn(&mut Object, Sel, id),
         );
@@ -263,11 +267,19 @@ lazy_static! {
             mouse_up_right as extern "C" fn(&mut Object, Sel, id),
         );
         decl.add_method(
+            sel!(otherMouseUp:),
+            mouse_up_other as extern "C" fn(&mut Object, Sel, id),
+        );
+        decl.add_method(
             sel!(mouseMoved:),
             mouse_move as extern "C" fn(&mut Object, Sel, id),
         );
         decl.add_method(
             sel!(mouseDragged:),
+            mouse_move as extern "C" fn(&mut Object, Sel, id),
+        );
+        decl.add_method(
+            sel!(otherMouseDragged:),
             mouse_move as extern "C" fn(&mut Object, Sel, id),
         );
         decl.add_method(
@@ -385,35 +397,43 @@ fn get_mouse_button(mask: usize) -> MouseButton {
 }
 
 extern "C" fn mouse_down_left(this: &mut Object, _: Sel, nsevent: id) {
-    mouse_down(this, nsevent, MouseButton::Left)
+    mouse_down(this, nsevent, Some(MouseButton::Left))
 }
 
 extern "C" fn mouse_down_right(this: &mut Object, _: Sel, nsevent: id) {
-    mouse_down(this, nsevent, MouseButton::Right)
+    mouse_down(this, nsevent, Some(MouseButton::Right))
 }
 
-fn mouse_down(this: &mut Object, nsevent: id, button: MouseButton) {
+extern "C" fn mouse_down_other(this: &mut Object, _: Sel, nsevent: id) {
+    mouse_down(this, nsevent, None)
+}
+
+fn mouse_down(this: &mut Object, nsevent: id, button: Option<MouseButton>) {
     unsafe {
         let view_state: *mut c_void = *this.get_ivar("viewState");
         let view_state = &mut *(view_state as *mut ViewState);
-        let event = mouse_event(nsevent, this as id, Some(button));
+        let event = mouse_event(nsevent, this as id, button);
         (*view_state).handler.mouse_down(&event);
     }
 }
 
 extern "C" fn mouse_up_left(this: &mut Object, _: Sel, nsevent: id) {
-    mouse_up(this, nsevent, MouseButton::Left)
+    mouse_up(this, nsevent, Some(MouseButton::Left))
 }
 
 extern "C" fn mouse_up_right(this: &mut Object, _: Sel, nsevent: id) {
-    mouse_up(this, nsevent, MouseButton::Right)
+    mouse_up(this, nsevent, Some(MouseButton::Right))
 }
 
-fn mouse_up(this: &mut Object, nsevent: id, button: MouseButton) {
+extern "C" fn mouse_up_other(this: &mut Object, _: Sel, nsevent: id) {
+    mouse_up(this, nsevent, None)
+}
+
+fn mouse_up(this: &mut Object, nsevent: id, button: Option<MouseButton>) {
     unsafe {
         let view_state: *mut c_void = *this.get_ivar("viewState");
         let view_state = &mut *(view_state as *mut ViewState);
-        let event = mouse_event(nsevent, this as id, Some(button));
+        let event = mouse_event(nsevent, this as id, button);
         (*view_state).handler.mouse_up(&event);
     }
 }
