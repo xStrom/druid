@@ -391,7 +391,7 @@ fn get_mouse_button(mask: usize) -> MouseButton {
         _ => {
             //FIXME: this gets called when the mouse moves, where there
             //may be no buttons down. This is mostly a problem with our API?
-            MouseButton::Unknown
+            MouseButton::Other
         }
     }
 }

@@ -140,8 +140,8 @@ pub use piet::{Color, LinearGradient, RadialGradient, RenderContext, UnitPoint};
 // these are the types from shell that we expose; others we only use internally.
 pub use shell::{
     Application, Clipboard, ClipboardFormat, Cursor, Error as PlatformError, FileDialogOptions,
-    FileInfo, FileSpec, FormatId, HotKey, KeyCode, KeyEvent, KeyModifiers, MouseButton, RawMods,
-    SysMods, Text, TimerToken, WindowHandle,
+    FileInfo, FileSpec, FormatId, HotKey, KeyCode, KeyEvent, KeyModifiers, MouseButton,
+    MouseButtons, RawMods, SysMods, Text, TimerToken, WindowHandle,
 };
 
 pub use crate::core::WidgetPod;
@@ -157,7 +157,7 @@ pub use ext_event::{ExtEventError, ExtEventSink};
 pub use lens::{Lens, LensExt, LensWrap};
 pub use localization::LocalizedString;
 pub use menu::{sys as platform_menus, ContextMenu, MenuDesc, MenuItem};
-pub use mouse::MouseEvent;
+pub use mouse::{ClickEvent, MoveEvent};
 pub use widget::{Widget, WidgetExt, WidgetId};
 pub use win_handler::DruidHandler;
 pub use window::{Window, WindowId};

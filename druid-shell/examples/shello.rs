@@ -18,8 +18,8 @@ use druid_shell::kurbo::{Line, Rect, Vec2};
 use druid_shell::piet::{Color, RenderContext};
 
 use druid_shell::{
-    Application, Cursor, FileDialogOptions, FileSpec, HotKey, KeyEvent, KeyModifiers, Menu,
-    MouseEvent, SysMods, TimerToken, WinHandler, WindowBuilder, WindowHandle,
+    Application, ClickEvent, Cursor, FileDialogOptions, FileSpec, HotKey, KeyEvent, KeyModifiers,
+    Menu, MoveEvent, SysMods, TimerToken, WinHandler, WindowBuilder, WindowHandle,
 };
 
 const BG_COLOR: Color = Color::rgb8(0x27, 0x28, 0x22);
@@ -75,16 +75,16 @@ impl WinHandler for HelloState {
         println!("mouse_wheel {:?} {:?}", delta, mods);
     }
 
-    fn mouse_move(&mut self, event: &MouseEvent) {
+    fn mouse_move(&mut self, event: &MoveEvent) {
         self.handle.set_cursor(&Cursor::Arrow);
         println!("mouse_move {:?}", event);
     }
 
-    fn mouse_down(&mut self, event: &MouseEvent) {
+    fn mouse_down(&mut self, event: &ClickEvent) {
         println!("mouse_down {:?}", event);
     }
 
-    fn mouse_up(&mut self, event: &MouseEvent) {
+    fn mouse_up(&mut self, event: &ClickEvent) {
         println!("mouse_up {:?}", event);
     }
 

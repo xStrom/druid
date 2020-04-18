@@ -20,8 +20,8 @@ use std::time::Duration;
 use crate::kurbo::{Affine, Point, Rect, RoundedRect, Size, Vec2};
 use crate::theme;
 use crate::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    RenderContext, TimerToken, UpdateCtx, Widget, WidgetPod,
+    BoxConstraints, ClickEvent, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
+    MoveEvent, PaintCtx, RenderContext, TimerToken, UpdateCtx, Widget, WidgetPod,
 };
 
 const SCROLLBAR_MIN_SIZE: f64 = 45.0;
@@ -297,8 +297,10 @@ impl<T: Data, W: Widget<T>> Widget<T> for Scroll<T, W> {
         let viewport = Rect::from_origin_size(Point::ORIGIN, size);
 
         let scrollbar_is_hovered = match event {
-            Event::MouseMove(e) | Event::MouseUp(e) | Event::MouseDown(e) => {
-                let offset_pos = e.pos + self.scroll_offset;
+            Event::MouseMove(MoveEvent { pos, .. })
+            | Event::MouseUp(ClickEvent { pos, .. })
+            | Event::MouseDown(ClickEvent { pos, .. }) => {
+                let offset_pos = *pos + self.scroll_offset;
                 self.point_hits_vertical_bar(viewport, offset_pos, env)
                     || self.point_hits_horizontal_bar(viewport, offset_pos, env)
             }

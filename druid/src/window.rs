@@ -26,9 +26,9 @@ use crate::shell::{Counter, Cursor, WindowHandle};
 use crate::core::{BaseState, CommandQueue, FocusChange};
 use crate::win_handler::RUN_COMMANDS_TOKEN;
 use crate::{
-    BoxConstraints, Command, Data, Env, Event, EventCtx, InternalEvent, InternalLifeCycle,
-    LayoutCtx, LifeCycle, LifeCycleCtx, LocalizedString, MenuDesc, PaintCtx, UpdateCtx, Widget,
-    WidgetId, WidgetPod, WindowDesc,
+    BoxConstraints, ClickEvent, Command, Data, Env, Event, EventCtx, InternalEvent,
+    InternalLifeCycle, LayoutCtx, LifeCycle, LifeCycleCtx, LocalizedString, MenuDesc, MoveEvent,
+    PaintCtx, UpdateCtx, Widget, WidgetId, WidgetPod, WindowDesc,
 };
 
 /// A unique identifier for a window.
@@ -151,9 +151,9 @@ impl<T: Data> Window<T> {
         env: &Env,
     ) -> bool {
         match &event {
-            Event::MouseDown(e) | Event::MouseUp(e) | Event::MouseMove(e) => {
-                self.last_mouse_pos = Some(e.pos)
-            }
+            Event::MouseDown(ClickEvent { pos, .. })
+            | Event::MouseUp(ClickEvent { pos, .. })
+            | Event::MouseMove(MoveEvent { pos, .. }) => self.last_mouse_pos = Some(*pos),
             Event::Internal(InternalEvent::MouseLeave) => self.last_mouse_pos = None,
             _ => (),
         }

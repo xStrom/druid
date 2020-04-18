@@ -22,7 +22,7 @@ use std::rc::Rc;
 use crate::kurbo::{Size, Vec2};
 use crate::piet::Piet;
 use crate::shell::{
-    Application, FileDialogOptions, IdleToken, MouseEvent, WinHandler, WindowHandle,
+    Application, ClickEvent, FileDialogOptions, IdleToken, MoveEvent, WinHandler, WindowHandle,
 };
 
 use crate::app_delegate::{AppDelegate, DelegateCtx};
@@ -624,18 +624,18 @@ impl<T: Data> WinHandler for DruidHandler<T> {
         self.app_state.handle_system_cmd(id, Some(self.window_id));
     }
 
-    fn mouse_down(&mut self, event: &MouseEvent) {
+    fn mouse_down(&mut self, event: &ClickEvent) {
         // TODO: double-click detection (or is this done in druid-shell?)
         let event = Event::MouseDown(event.clone().into());
         self.app_state.do_window_event(event, self.window_id);
     }
 
-    fn mouse_up(&mut self, event: &MouseEvent) {
+    fn mouse_up(&mut self, event: &ClickEvent) {
         let event = Event::MouseUp(event.clone().into());
         self.app_state.do_window_event(event, self.window_id);
     }
 
-    fn mouse_move(&mut self, event: &MouseEvent) {
+    fn mouse_move(&mut self, event: &MoveEvent) {
         let event = Event::MouseMove(event.clone().into());
         self.app_state.do_window_event(event, self.window_id);
     }

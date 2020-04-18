@@ -740,7 +740,7 @@ fn get_mouse_button(button: u32) -> MouseButton {
         3 => MouseButton::Right,
         4 => MouseButton::X1,
         5 => MouseButton::X2,
-        _ => MouseButton::Unknown,
+        _ => MouseButton::Other,
     }
 }
 
@@ -753,7 +753,7 @@ fn get_mouse_button_from_modifiers(modifiers: gdk::ModifierType) -> MouseButton 
         modifiers if modifiers.contains(ModifierType::BUTTON5_MASK) => MouseButton::X2,
         _ => {
             //FIXME: what about when no modifiers match?
-            MouseButton::Unknown
+            MouseButton::Other
         }
     }
 }

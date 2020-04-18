@@ -23,7 +23,7 @@ use crate::error::Error;
 use crate::keyboard::{KeyEvent, KeyModifiers};
 use crate::kurbo::{Point, Size, Vec2};
 use crate::menu::Menu;
-use crate::mouse::{Cursor, MouseEvent};
+use crate::mouse::{ClickEvent, Cursor, MoveEvent};
 use crate::platform::window as platform;
 
 // It's possible we'll want to make this type alias at a lower level,
@@ -324,15 +324,15 @@ pub trait WinHandler {
 
     /// Called when the mouse moves.
     #[allow(unused_variables)]
-    fn mouse_move(&mut self, event: &MouseEvent) {}
+    fn mouse_move(&mut self, event: &MoveEvent) {}
 
     /// Called on mouse button down.
     #[allow(unused_variables)]
-    fn mouse_down(&mut self, event: &MouseEvent) {}
+    fn mouse_down(&mut self, event: &ClickEvent) {}
 
     /// Called on mouse button up.
     #[allow(unused_variables)]
-    fn mouse_up(&mut self, event: &MouseEvent) {}
+    fn mouse_up(&mut self, event: &ClickEvent) {}
 
     /// Called when the mouse cursor has left the application window
     fn mouse_leave(&mut self) {}

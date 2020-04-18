@@ -18,7 +18,7 @@ use crate::kurbo::{Rect, Shape, Size, Vec2};
 
 use druid_shell::{Clipboard, KeyEvent, KeyModifiers, TimerToken};
 
-use crate::mouse::MouseEvent;
+use crate::mouse::{ClickEvent, MoveEvent};
 use crate::{Command, Target, WidgetId};
 
 /// An event, propagated downwards during event flow.
@@ -64,9 +64,9 @@ pub enum Event {
     /// to just handle it in `layout`.
     WindowSize(Size),
     /// Called when a mouse button is pressed.
-    MouseDown(MouseEvent),
+    MouseDown(ClickEvent),
     /// Called when a mouse button is released.
-    MouseUp(MouseEvent),
+    MouseUp(ClickEvent),
     /// Called when the mouse is moved.
     ///
     /// The `MouseMove` event is propagated to the active widget, if
@@ -79,7 +79,7 @@ pub enum Event {
     /// propagated to active or hot widgets.
     ///
     /// [`set_cursor`]: struct.EventCtx.html#method.set_cursor
-    MouseMove(MouseEvent),
+    MouseMove(MoveEvent),
     /// Called when a key is pressed.
     ///
     /// Note: the intent is for each physical key press to correspond to
