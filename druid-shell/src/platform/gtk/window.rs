@@ -41,7 +41,7 @@ use super::util::assert_main_thread;
 use crate::common_util::IdleCallback;
 use crate::dialog::{FileDialogOptions, FileDialogType, FileInfo};
 use crate::keyboard;
-use crate::mouse::{Cursor, MouseButton, MouseEvent};
+use crate::mouse::{Cursor, MouseButton, MouseButtons, MoveEvent, ClickEvent};
 use crate::window::{IdleToken, Text, TimerToken, WinHandler};
 use crate::Error;
 
@@ -282,11 +282,13 @@ impl WindowBuilder {
         drawing_area.connect_button_press_event(clone!(handle => move |_widget, button| {
             if let Some(state) = handle.state.upgrade() {
                 if let Ok(mut handler) = state.handler.try_borrow_mut() {
+                    let button_state = button.get_state();
                     handler.mouse_down(
-                        &MouseEvent {
+                        &ClickEvent {
                             pos: Point::from(button.get_position()),
+                            buttons: get_mouse_buttons_from_modifiers(button_state),
+                            mods: get_modifiers(button_state),
                             count: get_mouse_click_count(button.get_event_type()),
-                            mods: get_modifiers(button.get_state()),
                             button: get_mouse_button(button.get_button()),
                         },
                     );
@@ -301,10 +303,12 @@ impl WindowBuilder {
         drawing_area.connect_button_release_event(clone!(handle => move |_widget, button| {
             if let Some(state) = handle.state.upgrade() {
                 if let Ok(mut handler) = state.handler.try_borrow_mut() {
+                    let button_state = button.get_state();
                     handler.mouse_up(
-                        &MouseEvent {
+                        &ClickEvent {
                             pos: Point::from(button.get_position()),
-                            mods: get_modifiers(button.get_state()),
+                            buttons: get_mouse_buttons_from_modifiers(button_state),
+                            mods: get_modifiers(button_state),
                             count: 0,
                             button: get_mouse_button(button.get_button()),
                         },
@@ -319,17 +323,15 @@ impl WindowBuilder {
 
         drawing_area.connect_motion_notify_event(clone!(handle => move |_widget, motion| {
             if let Some(state) = handle.state.upgrade() {
-
-                let pos = Point::from(motion.get_position());
-                let mouse_event = MouseEvent {
-                    pos,
-                    mods: get_modifiers(motion.get_state()),
-                    count: 0,
-                    button: get_mouse_button_from_modifiers(motion.get_state()),
+                let motion_state = motion.get_state();
+                let move_event = MoveEvent {
+                    pos: Point::from(motion.get_position()),
+                    buttons: get_mouse_buttons_from_modifiers(motion_state),
+                    mods: get_modifiers(motion_state),
                 };
 
                 if let Ok(mut handler) = state.handler.try_borrow_mut() {
-                    handler.mouse_move(&mouse_event);
+                    handler.mouse_move(&move_event);
                 } else {
                     log::info!("GTK event was dropped because the handler was already borrowed");
                 }
@@ -340,17 +342,15 @@ impl WindowBuilder {
 
         drawing_area.connect_leave_notify_event(clone!(handle => move |_widget, crossing| {
             if let Some(state) = handle.state.upgrade() {
-
-                let pos = Point::from(crossing.get_position());
-                let mouse_event = MouseEvent {
-                    pos,
-                    mods: get_modifiers(crossing.get_state()),
-                    count: 0,
-                    button: get_mouse_button_from_modifiers(crossing.get_state()),
+                let crossing_state = crossing.get_state();
+                let move_event = MoveEvent {
+                    pos: Point::from(crossing.get_position()),
+                    buttons: get_mouse_buttons_from_modifiers(crossing_state),
+                    mods: get_modifiers(crossing_state),
                 };
 
                 if let Ok(mut handler) = state.handler.try_borrow_mut() {
-                    handler.mouse_move(&mouse_event);
+                    handler.mouse_move(&move_event);
                 } else {
                     log::info!("GTK event was dropped because the handler was already borrowed");
                 }
@@ -744,18 +744,24 @@ fn get_mouse_button(button: u32) -> MouseButton {
     }
 }
 
-fn get_mouse_button_from_modifiers(modifiers: gdk::ModifierType) -> MouseButton {
-    match modifiers {
-        modifiers if modifiers.contains(ModifierType::BUTTON1_MASK) => MouseButton::Left,
-        modifiers if modifiers.contains(ModifierType::BUTTON2_MASK) => MouseButton::Middle,
-        modifiers if modifiers.contains(ModifierType::BUTTON3_MASK) => MouseButton::Right,
-        modifiers if modifiers.contains(ModifierType::BUTTON4_MASK) => MouseButton::X1,
-        modifiers if modifiers.contains(ModifierType::BUTTON5_MASK) => MouseButton::X2,
-        _ => {
-            //FIXME: what about when no modifiers match?
-            MouseButton::Other
-        }
+fn get_mouse_buttons_from_modifiers(modifiers: gdk::ModifierType) -> MouseButtons {
+    let mut buttons = MouseButtons::new();
+    if modifiers.contains(ModifierType::BUTTON1_MASK) {
+        buttons.add(MouseButton::Left);
     }
+    if modifiers.contains(ModifierType::BUTTON2_MASK) {
+        buttons.add(MouseButton::Middle);
+    }
+    if modifiers.contains(ModifierType::BUTTON3_MASK) {
+        buttons.add(MouseButton::Right);
+    }
+    if modifiers.contains(ModifierType::BUTTON4_MASK) {
+        buttons.add(MouseButton::X1);
+    }
+    if modifiers.contains(ModifierType::BUTTON5_MASK) {
+        buttons.add(MouseButton::X2);
+    }
+    buttons
 }
 
 fn get_mouse_click_count(event_type: gdk::EventType) -> u32 {
@@ -763,7 +769,11 @@ fn get_mouse_click_count(event_type: gdk::EventType) -> u32 {
         gdk::EventType::ButtonPress => 1,
         gdk::EventType::DoubleButtonPress => 2,
         gdk::EventType::TripleButtonPress => 3,
-        _ => 0,
+        gdk::EventType::ButtonRelease => 0,
+        _ => {
+            log::warn!("Unexpected mouse click event type: {:?}", event_type);
+            0
+        }
     }
 }
 
