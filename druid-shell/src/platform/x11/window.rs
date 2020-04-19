@@ -23,7 +23,7 @@ use crate::dialog::{FileDialogOptions, FileInfo};
 use crate::keyboard::{KeyEvent, KeyModifiers};
 use crate::keycodes::KeyCode;
 use crate::kurbo::{Point, Size};
-use crate::mouse::{Cursor, MouseEvent};
+use crate::mouse::{ClickEvent, Cursor, MoveEvent};
 use crate::piet::{Piet, RenderContext};
 use crate::window::{IdleToken, Text, TimerToken, WinHandler};
 
@@ -258,16 +258,16 @@ impl XWindow {
         ));
     }
 
-    pub fn mouse_down(&mut self, mouse_event: &MouseEvent) {
-        self.handler.mouse_down(mouse_event);
+    pub fn mouse_down(&mut self, click_event: &ClickEvent) {
+        self.handler.mouse_down(click_event);
     }
 
-    pub fn mouse_up(&mut self, mouse_event: &MouseEvent) {
-        self.handler.mouse_up(mouse_event);
+    pub fn mouse_up(&mut self, click_event: &ClickEvent) {
+        self.handler.mouse_up(click_event);
     }
 
-    pub fn mouse_move(&mut self, mouse_event: &MouseEvent) {
-        self.handler.mouse_move(mouse_event);
+    pub fn mouse_move(&mut self, move_event: &MoveEvent) {
+        self.handler.mouse_move(move_event);
     }
 
     fn communicate_size(&mut self, size: Size) {
@@ -419,7 +419,7 @@ impl WindowHandle {
 
     pub fn get_dpi(&self) -> f32 {
         // TODO(x11/dpi_scaling): figure out DPI scaling
-        log::warn!("WindowHandle::get_dpi is currently unimplemented for X11 platforms.");
+        //log::warn!("WindowHandle::get_dpi is currently unimplemented for X11 platforms.");
         96.0
     }
 }

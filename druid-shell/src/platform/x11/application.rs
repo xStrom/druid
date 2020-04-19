@@ -24,7 +24,7 @@ use super::clipboard::Clipboard;
 use super::window::XWindow;
 use crate::application::AppHandler;
 use crate::kurbo::Point;
-use crate::{KeyCode, KeyModifiers, MouseButton, MouseEvent};
+use crate::{ClickEvent, KeyCode, KeyModifiers, MouseButton, MouseButtons, MoveEvent};
 
 struct XcbConnection {
     connection: Arc<xcb::Connection>,
@@ -100,11 +100,13 @@ impl Application {
                     xcb::BUTTON_PRESS => {
                         let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&ev) };
                         let window_id = button_press.event();
-                        let mouse_event = MouseEvent {
+                        let click_event = ClickEvent {
                             pos: Point::new(
                                 button_press.event_x() as f64,
                                 button_press.event_y() as f64,
                             ),
+                            // TODO: Fill with held down buttons
+                            buttons: MouseButtons::new().with(MouseButton::Left),
                             mods: KeyModifiers {
                                 shift: false,
                                 alt: false,
@@ -117,7 +119,7 @@ impl Application {
                         WINDOW_MAP.with(|map| {
                             let mut windows = map.borrow_mut();
                             if let Some(w) = windows.get_mut(&window_id) {
-                                w.mouse_down(&mouse_event);
+                                w.mouse_down(&click_event);
                             }
                         })
                     }
@@ -125,11 +127,13 @@ impl Application {
                         let button_release: &xcb::ButtonReleaseEvent =
                             unsafe { xcb::cast_event(&ev) };
                         let window_id = button_release.event();
-                        let mouse_event = MouseEvent {
+                        let click_event = ClickEvent {
                             pos: Point::new(
                                 button_release.event_x() as f64,
                                 button_release.event_y() as f64,
                             ),
+                            // TODO: Fill with held down buttons
+                            buttons: MouseButtons::new(),
                             mods: KeyModifiers {
                                 shift: false,
                                 alt: false,
@@ -142,31 +146,31 @@ impl Application {
                         WINDOW_MAP.with(|map| {
                             let mut windows = map.borrow_mut();
                             if let Some(w) = windows.get_mut(&window_id) {
-                                w.mouse_up(&mouse_event);
+                                w.mouse_up(&click_event);
                             }
                         })
                     }
                     xcb::MOTION_NOTIFY => {
                         let mouse_move: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(&ev) };
                         let window_id = mouse_move.event();
-                        let mouse_event = MouseEvent {
+                        let move_event = MoveEvent {
                             pos: Point::new(
                                 mouse_move.event_x() as f64,
                                 mouse_move.event_y() as f64,
                             ),
+                            // TODO: Fill with held down buttons
+                            buttons: MouseButtons::new(),
                             mods: KeyModifiers {
                                 shift: false,
                                 alt: false,
                                 ctrl: false,
                                 meta: false,
                             },
-                            count: 0,
-                            button: MouseButton::Left,
                         };
                         WINDOW_MAP.with(|map| {
                             let mut windows = map.borrow_mut();
                             if let Some(w) = windows.get_mut(&window_id) {
-                                w.mouse_move(&mouse_event);
+                                w.mouse_move(&move_event);
                             }
                         })
                     }

@@ -41,7 +41,7 @@ use super::util::assert_main_thread;
 use crate::common_util::IdleCallback;
 use crate::dialog::{FileDialogOptions, FileDialogType, FileInfo};
 use crate::keyboard;
-use crate::mouse::{Cursor, MouseButton, MouseButtons, MoveEvent, ClickEvent};
+use crate::mouse::{ClickEvent, Cursor, MouseButton, MouseButtons, MoveEvent};
 use crate::window::{IdleToken, Text, TimerToken, WinHandler};
 use crate::Error;
 
@@ -283,13 +283,16 @@ impl WindowBuilder {
             if let Some(state) = handle.state.upgrade() {
                 if let Ok(mut handler) = state.handler.try_borrow_mut() {
                     let button_state = button.get_state();
+                    let btn = get_mouse_button(button.get_button());
+                    let mut buttons = get_mouse_buttons_from_modifiers(button_state);
+                    buttons.add(btn);
                     handler.mouse_down(
                         &ClickEvent {
                             pos: Point::from(button.get_position()),
-                            buttons: get_mouse_buttons_from_modifiers(button_state),
+                            buttons,
                             mods: get_modifiers(button_state),
                             count: get_mouse_click_count(button.get_event_type()),
-                            button: get_mouse_button(button.get_button()),
+                            button: btn,
                         },
                     );
                 } else {
@@ -304,13 +307,16 @@ impl WindowBuilder {
             if let Some(state) = handle.state.upgrade() {
                 if let Ok(mut handler) = state.handler.try_borrow_mut() {
                     let button_state = button.get_state();
+                    let btn = get_mouse_button(button.get_button());
+                    let mut buttons = get_mouse_buttons_from_modifiers(button_state);
+                    buttons.remove(btn);
                     handler.mouse_up(
                         &ClickEvent {
                             pos: Point::from(button.get_position()),
-                            buttons: get_mouse_buttons_from_modifiers(button_state),
+                            buttons,
                             mods: get_modifiers(button_state),
                             count: 0,
-                            button: get_mouse_button(button.get_button()),
+                            button: btn,
                         },
                     );
                 } else {
@@ -734,12 +740,14 @@ fn make_gdk_cursor(cursor: &Cursor, gdk_window: &gdk::Window) -> Option<gdk::Cur
 }
 
 fn get_mouse_button(button: u32) -> MouseButton {
+    println!("Button: {}", button);
     match button {
         1 => MouseButton::Left,
         2 => MouseButton::Middle,
         3 => MouseButton::Right,
-        4 => MouseButton::X1,
-        5 => MouseButton::X2,
+        // GDK X backend interprets button press events for button 4-7 as scroll events
+        8 => MouseButton::X1,
+        9 => MouseButton::X2,
         _ => MouseButton::Other,
     }
 }
@@ -755,6 +763,9 @@ fn get_mouse_buttons_from_modifiers(modifiers: gdk::ModifierType) -> MouseButton
     if modifiers.contains(ModifierType::BUTTON3_MASK) {
         buttons.add(MouseButton::Right);
     }
+    // TODO: Determine X1/X2 state (do caching ourselves if needed)
+    //       Checking for BUTTON4_MASK/BUTTON5_MASK does not work with GDK X,
+    //       because those are wheel events instead.
     if modifiers.contains(ModifierType::BUTTON4_MASK) {
         buttons.add(MouseButton::X1);
     }
@@ -764,7 +775,7 @@ fn get_mouse_buttons_from_modifiers(modifiers: gdk::ModifierType) -> MouseButton
     buttons
 }
 
-fn get_mouse_click_count(event_type: gdk::EventType) -> u32 {
+fn get_mouse_click_count(event_type: gdk::EventType) -> u8 {
     match event_type {
         gdk::EventType::ButtonPress => 1,
         gdk::EventType::DoubleButtonPress => 2,
