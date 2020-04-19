@@ -48,7 +48,7 @@ use crate::common_util::IdleCallback;
 use crate::dialog::{FileDialogOptions, FileDialogType, FileInfo};
 use crate::keyboard::{KeyEvent, KeyModifiers};
 use crate::keycodes::KeyCode;
-use crate::mouse::{Cursor, MouseButton, MouseEvent};
+use crate::mouse::{ClickEvent, Cursor, MouseButton, MouseButtons, MoveEvent};
 use crate::window::{IdleToken, Text, TimerToken, WinHandler};
 use crate::Error;
 
@@ -359,20 +359,18 @@ extern "C" fn set_frame_size(this: &mut Object, _: Sel, size: NSSize) {
 
 // NOTE: If we know the button (because of the origin call) we pass it through,
 // otherwise we get it from the event itself.
-fn mouse_event(nsevent: id, view: id, button: Option<MouseButton>) -> MouseEvent {
+fn click_event(nsevent: id, view: id, button: Option<MouseButton>) -> ClickEvent {
     unsafe {
-        let button = button.unwrap_or_else(|| {
-            let button = NSEvent::pressedMouseButtons(nsevent);
-            get_mouse_button(button as usize)
-        });
         let point = nsevent.locationInWindow();
         let view_point = view.convertPoint_fromView_(point, nil);
         let pos = Point::new(view_point.x as f64, view_point.y as f64);
-        let modifiers = nsevent.modifierFlags();
-        let modifiers = make_modifiers(modifiers);
+        let buttons = get_mouse_buttons(NSEvent::pressedMouseButtons(nsevent) as usize);
+        let modifiers = make_modifiers(nsevent.modifierFlags());
         let count = nsevent.clickCount() as u32;
+        let button = button.unwrap_or_else(|| get_mouse_button(nsevent.buttonNumber()));
         MouseEvent {
             pos,
+            buttons,
             mods: modifiers,
             count,
             button,
@@ -380,20 +378,55 @@ fn mouse_event(nsevent: id, view: id, button: Option<MouseButton>) -> MouseEvent
     }
 }
 
-fn get_mouse_button(mask: usize) -> MouseButton {
-    //TODO: this doesn't correctly handle multiple buttons being pressed.
-    match mask {
-        mask if mask & 1 > 0 => MouseButton::Left,
-        mask if mask & 1 << 1 > 0 => MouseButton::Right,
-        mask if mask & 1 << 2 > 0 => MouseButton::Middle,
-        mask if mask & 1 << 3 > 0 => MouseButton::X1,
-        mask if mask & 1 << 4 > 0 => MouseButton::X2,
-        _ => {
-            //FIXME: this gets called when the mouse moves, where there
-            //may be no buttons down. This is mostly a problem with our API?
-            MouseButton::Other
+fn move_event(nsevent: id, view: id) -> MoveEvent {
+    unsafe {
+        let point = nsevent.locationInWindow();
+        let view_point = view.convertPoint_fromView_(point, nil);
+        let pos = Point::new(view_point.x as f64, view_point.y as f64);
+        let buttons = get_mouse_buttons(NSEvent::pressedMouseButtons(nsevent) as usize);
+        let modifiers = make_modifiers(nsevent.modifierFlags());
+        MoveEvent {
+            pos,
+            buttons,
+            mods: modifiers,
         }
     }
+}
+
+fn get_mouse_button(button: usize) -> MouseButton {
+    match button {
+        0 => {
+            // Apple docs claim this happens when dealing with a non-mouse event.
+            log::error!("Invalid mouse button, make sure it's taken from a mouse event.")
+            MouseButton::Other
+        }
+        1 => MouseButton::Left,
+        2 => MouseButton::Right,
+        3 => MouseButton::Middle,
+        4 => MouseButton::X1,
+        5 => MouseButton::X2,
+        _ => MouseButton::Other,
+    }
+}
+
+fn get_mouse_buttons(mask: usize) -> MouseButtons {
+    let mut buttons = MouseButtons::new();
+    if mask & 1 != 0 {
+        buttons.add(MouseButton::Left);
+    }
+    if mask & 1 << 1 != 0 {
+        buttons.add(MouseButton::Right);
+    }
+    if mask & 1 << 2 != 0 {
+        buttons.add(MouseButton::Middle);
+    }
+    if mask & 1 << 3 != 0 {
+        buttons.add(MouseButton::X1);
+    }
+    if mask & 1 << 4 != 0 {
+        buttons.add(MouseButton::X2);
+    }
+    buttons
 }
 
 extern "C" fn mouse_down_left(this: &mut Object, _: Sel, nsevent: id) {
@@ -412,7 +445,7 @@ fn mouse_down(this: &mut Object, nsevent: id, button: Option<MouseButton>) {
     unsafe {
         let view_state: *mut c_void = *this.get_ivar("viewState");
         let view_state = &mut *(view_state as *mut ViewState);
-        let event = mouse_event(nsevent, this as id, button);
+        let event = click_event(nsevent, this as id, button);
         (*view_state).handler.mouse_down(&event);
     }
 }
@@ -433,7 +466,7 @@ fn mouse_up(this: &mut Object, nsevent: id, button: Option<MouseButton>) {
     unsafe {
         let view_state: *mut c_void = *this.get_ivar("viewState");
         let view_state = &mut *(view_state as *mut ViewState);
-        let event = mouse_event(nsevent, this as id, button);
+        let event = click_event(nsevent, this as id, button);
         (*view_state).handler.mouse_up(&event);
     }
 }
@@ -442,7 +475,7 @@ extern "C" fn mouse_move(this: &mut Object, _: Sel, nsevent: id) {
     unsafe {
         let view_state: *mut c_void = *this.get_ivar("viewState");
         let view_state = &mut *(view_state as *mut ViewState);
-        let event = mouse_event(nsevent, this as id, None);
+        let event = move_event(nsevent, this as id);
         (*view_state).handler.mouse_move(&event);
     }
 }
