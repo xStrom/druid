@@ -96,6 +96,12 @@ impl<W> Glow<W> {
 
 impl<W: Widget<State>> Widget<State> for Glow<W> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, env: &Env) {
+        match event {
+            Event::MouseDown(e) => println!("MouseDown: {:?}", e),
+            Event::MouseMove(e) => println!("MouseMove: {:?}", e),
+            Event::MouseUp(e) => println!("MouseUp: {:?}", e),
+            _ => (),
+        }
         self.inner.event(ctx, event, data, env);
     }
 
