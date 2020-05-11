@@ -78,6 +78,7 @@ While some features like the clipboard, menus or file dialogs are not yet availa
 - X11: Support individual window closing. ([#900] by [@xStrom])
 - X11: Support `Application::quit`. ([#900] by [@xStrom])
 - GTK: Support file filters in open/save dialogs. ([#903] by [@jneem])
+- Windows: Reduced chance of white flash when opening a new window. ([#916] by [@xStrom])
 - X11: Support key and mouse button state. ([#920] by [@jneem])
 
 ### Visual
@@ -163,6 +164,7 @@ While some features like the clipboard, menus or file dialogs are not yet availa
 [#900]: https://github.com/xi-editor/druid/pull/900
 [#903]: https://github.com/xi-editor/druid/pull/903
 [#909]: https://github.com/xi-editor/druid/pull/909
+[#916]: https://github.com/xi-editor/druid/pull/916
 [#917]: https://github.com/xi-editor/druid/pull/917
 [#920]: https://github.com/xi-editor/druid/pull/920
 
