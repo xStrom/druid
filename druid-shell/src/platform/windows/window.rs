@@ -22,6 +22,7 @@ use std::mem;
 use std::ptr::{null, null_mut};
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use log::{debug, error, warn};
 use winapi::ctypes::{c_int, c_void};
@@ -181,6 +182,7 @@ struct WndState {
     // Is this window the topmost window under the mouse cursor
     has_mouse_focus: bool,
     //TODO: track surrogate orphan
+    shown: Instant,
 }
 
 /// State for DirectComposition. This is optional because it is only supported
@@ -311,7 +313,13 @@ impl WndState {
             // The documentation on DXGI_PRESENT_PARAMETERS says we "must not update any
             // pixel outside of the dirty rectangles."
             piet_ctx.clip(invalid_rect);
+            let t = Instant::now();
             anim = self.handler.paint(&mut piet_ctx, invalid_rect);
+            println!(
+                "{:?} > handler.paint took {:?}",
+                self.shown.elapsed(),
+                t.elapsed()
+            );
             if let Err(e) = piet_ctx.finish() {
                 error!("piet error on render: {:?}", e);
             }
@@ -378,6 +386,7 @@ impl WndProc for MyWndProc {
         //println!("wndproc msg: {}", msg);
         match msg {
             WM_CREATE => {
+                let t = Instant::now();
                 if let Some(state) = self.handle.borrow().state.upgrade() {
                     state.hwnd.set(hwnd);
                 }
@@ -398,6 +407,21 @@ impl WndProc for MyWndProc {
 
                     let handle = self.handle.borrow().to_owned();
                     state.handler.connect(&handle.into());
+                    println!(
+                        "{:?} > WM_CREATE took {:?}",
+                        state.shown.elapsed(),
+                        t.elapsed()
+                    );
+                }
+                Some(0)
+            }
+            WM_SHOWWINDOW => {
+                if wparam == 1 {
+                    println!(
+                        "{:?} > WM_SHOWWINDOW",
+                        self.state.borrow().as_ref().unwrap().shown.elapsed()
+                    );
+                    self.state.borrow_mut().as_mut().unwrap().shown = Instant::now();
                 }
                 Some(0)
             }
@@ -412,6 +436,7 @@ impl WndProc for MyWndProc {
                 Some(0)
             }
             WM_PAINT => unsafe {
+                let t = Instant::now();
                 if let Ok(mut s) = self.state.try_borrow_mut() {
                     let mut rect: RECT = mem::zeroed();
                     GetUpdateRect(hwnd, &mut rect, FALSE);
@@ -440,6 +465,7 @@ impl WndProc for MyWndProc {
                         }
                     }
                     ValidateRect(hwnd, null_mut());
+                    println!("{:?} > WM_PAINT took {:?}", s.shown.elapsed(), t.elapsed());
                 } else {
                     self.log_dropped_msg(hwnd, msg, wparam, lparam);
                 }
@@ -531,6 +557,7 @@ impl WndProc for MyWndProc {
                 None
             },
             WM_SIZE => unsafe {
+                let t = Instant::now();
                 if let Ok(mut s) = self.state.try_borrow_mut() {
                     let s = s.as_mut().unwrap();
                     let width = LOWORD(lparam as u32) as u32;
@@ -575,6 +602,7 @@ impl WndProc for MyWndProc {
                             error!("ResizeBuffers failed: 0x{:x}", res);
                         }
                     }
+                    println!("{:?} > WM_SIZE took {:?}", s.shown.elapsed(), t.elapsed());
                 } else {
                     self.log_dropped_msg(hwnd, msg, wparam, lparam);
                 }
@@ -1020,6 +1048,7 @@ impl WindowBuilder {
                 stashed_char: None,
                 captured_mouse_buttons: MouseButtons::new(),
                 has_mouse_focus: false,
+                shown: Instant::now(),
             };
             win.wndproc.connect(&handle, state);
 

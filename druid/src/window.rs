@@ -317,18 +317,24 @@ impl<T: Data> Window<T> {
         data: &T,
         env: &Env,
     ) {
+        let t = Instant::now();
         // FIXME: only do AnimFrame if root has requested_anim?
         self.lifecycle(queue, &LifeCycle::AnimFrame(0), data, env, true);
+        println!("paint.lifecycle took {:?}", t.elapsed());
 
         if self.root.state().needs_layout {
+            let t = Instant::now();
             self.layout(piet, queue, data, env);
+            println!("paint.layout took {:?}", t.elapsed());
         }
 
         piet.fill(
             invalid_rect,
             &env.get(crate::theme::WINDOW_BACKGROUND_COLOR),
         );
+        let t = Instant::now();
         self.paint(piet, invalid_rect, data, env);
+        println!("paint.paint took {:?}", t.elapsed());
     }
 
     fn layout(&mut self, piet: &mut Piet, queue: &mut CommandQueue, data: &T, env: &Env) {
