@@ -90,8 +90,8 @@ features = ["d2d1_1", "dwrite", "winbase", "libloaderapi", "errhandlingapi", "wi
 block = "0.1.6"
 cocoa = "0.24.1"
 objc = "0.2.7"
-core-graphics = "0.22.3"
-foreign-types = "0.3.2"
+core-graphics = "0.24.0"
+foreign-types = "0.5.0"
 bitflags = "1.3.2"
 
 [target.'cfg(any(target_os = "freebsd", target_os="linux", target_os="openbsd"))'.dependencies]
